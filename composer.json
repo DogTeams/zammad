@@ -1,0 +1,19 @@
+{
+    "name": "dogteam/zammad",
+    "description": "Zammad for Laravel",
+    "require": {
+        "zammad/zammad-api-client-php": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dogteam\\Zammad\\": "src"
+        }
+    },
+    "authors": [
+        {
+            "name": "SorayaNeechan",
+            "email": "sorayakirito@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev"
+}
