@@ -1,4 +1,4 @@
-README
+Zammad
 ===
 
 Installation via Composer :
