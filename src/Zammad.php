@@ -5,6 +5,7 @@ namespace Dogteam\Zammad;
 //use App\Http\Controller;
 use ZammadAPIClient\Client;
 use ZammadAPIClient\ResourceType;
+use Illuminate\Support\Facades\Config;
 
 class Zammad
 {
@@ -17,18 +18,20 @@ class Zammad
     private $token;
 
     public function __construct() {
-        $this->username = env('ZAMMAD_USERNAME');
-        $this->password = env('ZAMMAD_PASSWORD');
-        $this->url      = env('ZAMMAD_URL');
-        $this->token    = env('ZAMMAD_TOKEN');
+        $this->username = config('zammad.username');
+        $this->password = config('zammad.password');
+        $this->url      = config('zammad.url');
+        $this->token    = config('zammad.token');
+
     }
 
     public function client() {
 
+
         $client = new Client([
-            'url'           => env('ZAMMAD_URL'),       // URL de votre installation Zammad
-            'username'      => env('ZAMMAD_USERNAME'),  // Nom d'utilisateur pour se connecter
-            'password'      => env('ZAMMAD_PASSWORD')  // Mot de passe pour se connecter
+            'url'           => config('zammad.url'),       // URL de votre installation Zammad
+            'username'      => config('zammad.username'),  // Nom d'utilisateur pour se connecter
+            'password'      => config('zammad.password')   // Mot de passe pour se connecter
         ]);
 
     if (!empty($this->onBehalf)) {

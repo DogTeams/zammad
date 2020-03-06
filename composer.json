@@ -2,7 +2,7 @@
     "name": "dogteam/zammad",
     "description": "Zammad for Laravel",
     "require": {
-        "zammad/zammad-api-client-php": "dev-master"
+        "zammad/zammad-api-client-php": "^1.4"
     },
     "autoload": {
         "psr-4": {

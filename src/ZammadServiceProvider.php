@@ -13,7 +13,7 @@ class ZammadServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->mergeConfigFrom(__DIR__.'/config/zammad.php', 'zammad');
     }
 
     /**
@@ -23,6 +23,9 @@ class ZammadServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+
+        $this->publishes([__DIR__.'/config/zammad.php' => config_path('zammad.php'),
+    ], 'config');
         $this->app->bind('zammad', function(){
             return new Dogteam\Zammad\Zammad;
         });
