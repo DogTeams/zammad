@@ -1,6 +1,7 @@
 {
     "name": "dogteam/zammad",
     "description": "Zammad for Laravel",
+    "license": "MIT",
     "require": {
         "zammad/zammad-api-client-php": "^1.4"
     },
