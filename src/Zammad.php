@@ -1,11 +1,15 @@
 <?php
-
+/**
+ * @package Zammad API Wrapper
+ * @author  Jordan GOBLET <jordan.goblet.pro@gmail.com>
+ */
 namespace Dogteam\Zammad;
 
 //use App\Http\Controller;
 use ZammadAPIClient\Client;
 use ZammadAPIClient\ResourceType;
 use Illuminate\Support\Facades\Config;
+use Dogteam\Zammad\Exception\TypeException;
 
 class Zammad
 {
@@ -17,6 +21,14 @@ class Zammad
     private $timeout;
     private $token;
 
+    const TICKET = 'ticket';
+    const ORGANIZATION = 'organization';
+    const USER = 'user';
+    const GROUP = 'group';
+    const TICKET_PRIORITY = 'ticket_priority';
+    const TICKET_STATE = 'ticket_state';
+    const TICKET_ARTICLE = 'ticket_article';
+
     public function __construct() {
         $this->username = config('zammad.username');
         $this->password = config('zammad.password');
@@ -24,59 +36,151 @@ class Zammad
         $this->token    = config('zammad.token');
 
     }
-
+    /**
+     * Create a Client
+     * 
+     * @return Client
+     */
     public function client() {
 
 
         $client = new Client([
-            'url'           => config('zammad.url'),       // URL de votre installation Zammad
-            'username'      => config('zammad.username'),  // Nom d'utilisateur pour se connecter
-            'password'      => config('zammad.password')   // Mot de passe pour se connecter
+            'url'           => config('zammad.url'),       // URL of your Zammad installation
+            'username'      => config('zammad.username'),  // Username to connect to Zammad
+            'password'      => config('zammad.password')   // Password to connect to Zammad
         ]);
-
+    //Define an onBehalf user if there is anyone
     if (!empty($this->onBehalf)) {
             $client->setOnBehalfOfUser($this->onBehalf);
         }
 
+    //Unable or disable debug mode
     if ($this->debug === 'true') {
             $client->debug = true;
         }
-
+    
+    //Define timeout delay
     if (!empty($this->timeout)) {
             $client->timeout = (integer) $this->timeout;
         }
         return $client;
     }
 
+    /**
+     * Create a defined type item
+     * @param String $type  Available type : ticket, user, group, organization, ticket_priority, ticket_state, ticket_article,
+     * @param Array $array  Content :
+     *                      Ticket content :
+     *                      $ticket_data = [
+     *                          'title'            => 'exemple',
+     *                          'customer'         => 'exemple@exemple.exemple',
+     *                          'group'            => 'exemple',
+     *                          'article'          => [
+     *                                  'from'         => 'exemple',
+     *                                  'subject'      => 'exemple',
+     *                                  'body'         => 'exemple',
+     *                                  'cc'           => 'exemple1@exemple.exemple',
+     *                                  'to'           => 'exemple47@exemple.exemple',
+     *                                  'from'         => 'exemple2@exemple.exemple',
+     *                                  'type'         => 'email',
+     *                          ],
+     *                      ];
+     * 
+     *                      User content :
+     *                      $user_data = [
+     *                           "id" => 1
+     *                           "organization_id" => null
+     *                           "login" => "user@user.com"
+     *                           "firstname" => ""
+     *                           "lastname" => ""
+     *                           "email" => "user@user.com"
+     *                      ]
+     * @return void
+     */
     public function create($type, $array)
     {
-        switch($type) {
-             case 'ticket':
-                 $this->createTicket($array);
-		         break;
-             case 'organization':
-                 $this->createOrganization($array);
-                 break;
-             case 'ticket_priority':
-                 $this->createTicketPriority($array);
-                 break;
-             case 'ticket_state':
-                 $this->createTicketState($array);
-                 break;
-             case 'ticket_article':
-                 $this->createTicketArticle($array);
-		         break;
-             case 'user':
-                 $this->createUser($array);
-                 break;
-             case 'group':
-                 $this->createGroup($array);
-                 break;
-             default:
-                return 'Type de ressource non supporté : ' . '"' . $type . '"';
+        try {
+            switch($type) {
+                case self::TICKET:
+                    $this->createTicket($array);
+                    break;
+                case self::ORGANIZATION:
+                    $this->createOrganization($array);
+                    break;
+                case self::TICKET_PRIORITY:
+                    $this->createTicketPriority($array);
+                    break;
+                case self::TICKET_STATE:
+                    $this->createTicketState($array);
+                    break;
+                case self::TICKET_ARTICLE:
+                    $this->createTicketArticle($array);
+                    break;
+                case self::USER:
+                    $this->createUser($array);
+                    break;
+                case self::GROUP:
+                    $this->createGroup($array);
+                    break;
+                default:
+                    throw new TypeException('not_found');
+            }
+        }
+        catch(TypeException $e){
+            return $e->getMessage();
         }
     }
 
+    /**
+     * Search for items according to defined type and keyword
+     * 
+     * @param String $type Available type : ticket, user, organization
+     * @param String $string Keyword
+     * @param String $page If there is many results pages, show the selected one
+     * @param String $objects_per_page Number of results by page
+     * 
+     * @return void
+     */
+    public function search($type, $string, $page = null, $objects_per_page = null){
+        try{
+            switch($type) {
+                case self::TICKET:
+                    return $this->searchTickets($string, $page, $objects_per_page);
+                    break;
+                case self::USER:
+                    return $this->searchUsers($string, $page, $objects_per_page);
+                    break;
+                case self::ORGANIZATION:
+                    return $this->searchOrganizations($string, $page, $objects_per_page);
+                    break;
+                default:
+                    throw new TypeException('not_found');
+            }
+        }
+        catch(TypeException $e){
+            return $e->getMessage();
+        }
+    }
+
+    /**
+     * Create a Zammad Ticket
+     * 
+     * @param Array $array  Ticket Content
+     *                      $ticket_data = [
+     *                          'title'            => 'exemple',
+     *                          'customer'         => 'exemple@exemple.exemple',
+     *                          'group'            => 'exemple',
+     *                          'article'          => [
+     *                                  'from'         => 'exemple',
+     *                                  'subject'      => 'exemple',
+     *                                  'body'         => 'exemple',
+     *                                  'cc'           => 'exemple1@exemple.exemple',
+     *                                  'to'           => 'exemple47@exemple.exemple',
+     *                                  'from'         => 'exemple2@exemple.exemple',
+     *                                  'type'         => 'email',
+     *                          ],
+     *                      ];
+     */
     public function createTicket($array) {
         $ticket = $this->client()->resource(ResourceType::TICKET);
 	foreach($array as $key => $value) {
@@ -87,22 +191,6 @@ class Zammad
 
         if ($ticket->hasError()) {
             return $ticket->getError();
-        }
-    }
-
-    public function search($type, $string, $page = null, $objects_per_page = null){
-        switch($type) {
-            case 'ticket':
-                return $this->searchTickets($string, $page, $objects_per_page);
-                break;
-            case 'user':
-                return $this->searchUsers($string, $page, $objects_per_page);
-                break;
-            case 'organization':
-                return $this->searchOrganizations($string, $page, $objects_per_page);
-                break;
-            default:
-                return 'Type de ressource non supporté : ' . '"' . $type . '"';
         }
     }
 
@@ -131,34 +219,44 @@ class Zammad
 
         return false;
     }
-
+    /**
+     * Find items of a defined type according to a given id
+     * @param String $type Available type : ticket, organization, ticket_priority, ticket_state, ticket_article, user, group
+     * @param Int $id ID number of the item
+     * 
+     * @return void
+     */
     public function find($type, $id) {
-        switch($type) {
-	        case 'ticket':
-                return $this->findTicket($id);
-	            break;
-            case 'organization':
-                return $this->findOrganization($id);
-		        break;
-            case 'ticket_priority':
-                return $this->findTicketPriority($id);
-		        break;
-            case 'ticket_state':
-                return $this->findTicketState($id);
-                break;
-            case 'ticket_article':
-                return $this->findTicketArticle($id);
-                break;
-            case 'user':
-                return $this->findUser($id);
-		        break;
-            case 'group':
-                return $this->findGroup($id);
-                break;
-            default:
-                return 'Type de ressource non supporté : ' . '"' . $type . '"';
+        try{
+            switch($type) {
+                case self::TICKET:
+                    return $this->findTicket($id);
+                    break;
+                case self::ORGANIZATION:
+                    return $this->findOrganization($id);
+                    break;
+                case self::TICKET_PRIORITY:
+                    return $this->findTicketPriority($id);
+                    break;
+                case self::TICKET_STATE:
+                    return $this->findTicketState($id);
+                    break;
+                case self::TICKET_ARTICLE:
+                    return $this->findTicketArticle($id);
+                    break;
+                case self::USER:
+                    return $this->findUser($id);
+                    break;
+                case self::GROUP:
+                    return $this->findGroup($id);
+                    break;
+                default:
+                    throw new TypeException('not_found');
+            }
         }
-
+        catch(TypeException $e){
+            return $e->getMessage();
+        }
     }
 
     public function findTicket($id) {
@@ -174,33 +272,45 @@ class Zammad
         return false;
     }
 
+    /**
+     * Update a given type item with a given ID
+     * @param String $type Available type : ticket, organization, ticket_priority, ticket_state, ticket_article, user, group
+     * @param Int $id ID number of the item
+     * @param Array $array Item content
+     * 
+     * @return void
+     */
     public function update($type, $id, $array) {
-        switch($type) {
-            case 'ticket':
+        try{
+            switch($type) {
+            case self::TICKET:
                 return $this->updateTicket($id, $array);
                 break;
-            case 'organization':
+            case self::ORGANIZATION:
                 return $this->updateOrganization($id, $array);
                 break;
-            case 'ticket_priority':
+            case self::TICKET_PRIORITY:
                 return $this->updateTicketPriority($id, $array);
                 break;
-            case 'ticket_state':
+            case self::TICKET_STATE:
                 return $this->updateTicketState($id, $array);
                 break;
-            case 'ticket_article':
+            case self::TICKET_ARTICLE:
                 return $this->updateTicketArticle($id, $array);
                 break;
-            case 'user':
+            case self::USER:
                 return $this->updateUser($id, $array);
                 break;
-            case 'group':
+            case self::GROUP:
                 return $this->updateGroup($id, $array);
                 break;
             default:
-                return 'Type de ressource non supporté : ' . '"' . $type . '"';
+                throw new TypeException('not_found');
+            }
         }
-
+        catch(TypeException $e){
+            return $e->getMessage();
+        }
     }
 
     public function updateTicket($id, $array) {
@@ -220,34 +330,46 @@ class Zammad
         }
     }
 
+    /**
+     * Delete an item of a given type
+     * 
+     * @param String $type Available type : ticket, organization, ticket_priority, ticket_state, ticket_article, user, group
+     * @param Int $id ID number of the item to delete
+     * 
+     * @return void
+     */
     public function delete($type, $id) {
-        switch($type) {
-            case 'ticket':
+        try{
+            switch($type) {
+            case self::TICKET:
                 return $this->deleteTicket($id);
                 break;
-            case 'organization':
+            case self::ORGANIZATION:
                 return $this->deleteOrganization($id);
                 break;
-            case 'ticket_priority':
+            case self::TICKET_PRIORITY:
                 return $this->deleteTicketPriority($id);
                 break;
-            case 'ticket_state':
+            case self::TICKET_STATE:
                 return $this->deleteTicketState($id);
                 break;
-            case 'ticket_article':
+            case self::TICKET_ARTICLE:
                 return $this->deleteTicketArticle($id);
                 break;
-            case 'user':
+            case self::USER:
                 return $this->deleteUser($id);
                 break;
-            case 'group':
+            case self::GROUP:
                 return $this->deleteGroup($id);
                 break;
             default:
-                return 'Type de ressource non supporté : ' . '"' . $type . '"';
+                throw new TypeException('not_found');
+            }
+        }
+        catch(TypeException $e){
+            return $e->getMessage();
         }
     }
-
     public function deleteTicket($id) {
         $ticket = $this->client()->resource(ResourceType::TICKET)->get($id);
         $ticket->delete();
@@ -614,33 +736,44 @@ class Zammad
         $ticketPriority->delete();
     }
 
-
+    /**
+     * Display all items of a given type
+     * 
+     * @param $type Available type : ticket, ticket_priority, ticket_state, ticket_article, user, group, organization
+     * 
+     * @return void
+     */
     public function all($type)
     {
-        switch($type) {
-             case 'ticket':
+        try{
+            switch($type) {
+             case self::TICKET:
                 return $this->allTickets();
 		         break;
-             case 'ticket_priority':
+             case self::TICKET_PRIORITY:
                 return $this->allTicketPriorities();
                  break;
-             case 'ticket_state':
+             case self::TICKET_STATE:
                 return $this->allTicketStates();
                  break;
-             case 'ticket_article':
+             case self::TICKET_ARTICLE:
                 return $this->allTicketArticles();
 		         break;
-             case 'user':
+             case self::USER:
                 return $this->allUsers();
                  break;
-             case 'group':
+             case self::GROUP:
                 return $this->allGroups();
                  break;
-             case 'organization':
+             case self::ORGANIZATION:
                 return $this->allOrganizations();
                  break;
              default:
-                return 'Type de ressource non supporté : ' . '"' . $type . '"';
+                throw new TypeException('not_found');
+            }
+        }
+        catch(TypeException $e){
+            return $e->getMessage();
         }
     }
 

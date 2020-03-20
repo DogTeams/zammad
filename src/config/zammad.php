@@ -1,4 +1,8 @@
 <?php
+/**
+ * @package Zammad API Wrapper
+ * @author  Jordan GOBLET <jordan.goblet.pro@gmail.com>
+ */
 return [
     'username' => env('ZAMMAD_USERNAME'),
 

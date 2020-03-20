@@ -1,5 +1,5 @@
 {
-    "name": "dogteam/zammad",
+    "name": "Dogteam/Zammad",
     "description": "Zammad for Laravel",
     "license": "MIT",
     "require": {
@@ -10,11 +10,9 @@
             "Dogteam\\Zammad\\": "src"
         }
     },
-    "authors": [
-        {
-            "name": "SorayaNeechan",
-            "email": "sorayakirito@gmail.com"
-        }
-    ],
+    "authors": [{
+        "name": "SorayaNeechan",
+        "email": "sorayakirito@gmail.com"
+    }],
     "minimum-stability": "dev"
 }
